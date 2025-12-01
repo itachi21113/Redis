@@ -11,6 +11,17 @@ public class Main {
         // 1. Initialize the Single Source of Truth (The Database)
         KVStore kvStore = new KVStore();
 
+        // 1. Load data immediately on startup
+        kvStore.loadFromFile();
+
+        // 2. Register the Shutdown Hook (The Safety Net)
+        // This runs when you press Ctrl+C or stop the app in IDE
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\nStopping Server...");
+            kvStore.saveToFile();
+            System.out.println("Goodbye!");
+        }));
+
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server is listening on port: " + port);
 

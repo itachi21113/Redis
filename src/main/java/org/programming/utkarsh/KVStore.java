@@ -1,4 +1,5 @@
 package org.programming.utkarsh;
+import java.io.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,6 +9,10 @@ public class KVStore {
     // 1. Create a minimal class to hold Value + Time
     // We use a private inner class because no one else needs to see this.
     private static class DatabaseEntry {
+
+        // Add a version ID to prevent errors if class changes
+        private static final long serialVersionUID = 1L;
+
         Object value;
         long expiryTime; // The exact timestamp (in ms) when this key dies. -1 means "never dies".
 
@@ -18,7 +23,7 @@ public class KVStore {
     }
 
     // 2. Change the Map to store this Entry object instead of just String
-    private final ConcurrentHashMap<String, DatabaseEntry> store = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, DatabaseEntry> store = new ConcurrentHashMap<>();
 
     // Standard SET (No expiry)
     public void set(String key, String value) {
@@ -109,5 +114,30 @@ public class KVStore {
         }
 
         return entry.value.toString();
+    }
+
+    public void saveToFile() {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("redis.data"))) {
+            out.writeObject(store);
+            System.out.println("✅ Data saved to redis.data");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // NEW: Load the HashMap from a file
+    @SuppressWarnings("unchecked")
+    public void loadFromFile() {
+        File file = new File("redis.data");
+        if (!file.exists()) {
+            return; // No existing data, start fresh
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
+            store = (ConcurrentHashMap<String, DatabaseEntry>) in.readObject();
+            System.out.println("✅ Data loaded from redis.data");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("⚠️ Could not load data: " + e.getMessage());
+        }
     }
 }
