@@ -52,6 +52,8 @@ public class ClientHandler implements Runnable {
                         }
                         break;
 
+
+
                     case "GET":
                         if (command.size() < 2) {
                             writer.write("-ERR wrong number of arguments for 'get'\r\n".getBytes());
@@ -67,6 +69,70 @@ public class ClientHandler implements Runnable {
                         }
                         break;
 
+                    case "EXPIRE":
+                        if (command.size() < 3) {
+                            writer.write("-ERR wrong number of arguments for 'expire'\r\n".getBytes());
+                        } else {
+                            String key = command.get(1);
+                            try {
+                                long seconds = Long.parseLong(command.get(2));
+                                int result = kvStore.expire(key, seconds);
+                                // Return Integer response (Colon :)
+                                writer.write((":" + result + "\r\n").getBytes());
+                            } catch (NumberFormatException e) {
+                                writer.write("-ERR value is not an integer or out of range\r\n".getBytes());
+                            }
+                        }
+                        break;
+
+                    // ... inside switch(cmdName) ...
+
+                    case "LPUSH":
+                        if (command.size() < 3) {
+                            writer.write("-ERR wrong number of arguments for 'lpush'\r\n".getBytes());
+                        } else {
+                            try {
+                                String key = command.get(1);
+                                // Get all values after the key
+                                String[] values = command.subList(2, command.size()).toArray(new String[0]);
+
+                                int size = kvStore.lpush(key, values);
+                                writer.write((":" + size + "\r\n").getBytes());
+                            } catch (RuntimeException e) {
+                                writer.write(("-ERR " + e.getMessage() + "\r\n").getBytes());
+                            }
+                        }
+                        break;
+
+                    case "LRANGE":
+                        if (command.size() < 4) {
+                            writer.write("-ERR wrong number of arguments for 'lrange'\r\n".getBytes());
+                        } else {
+                            try {
+                                String key = command.get(1);
+                                int start = Integer.parseInt(command.get(2));
+                                int stop = Integer.parseInt(command.get(3));
+
+                                List<String> result = kvStore.lrange(key, start, stop);
+
+                                // FORMATTING RESP ARRAY
+                                StringBuilder sb = new StringBuilder();
+                                sb.append("*").append(result.size()).append("\r\n"); // Header *Count
+
+                                for (String val : result) {
+                                    sb.append("$").append(val.length()).append("\r\n"); // $Length
+                                    sb.append(val).append("\r\n");                      // Value
+                                }
+
+                                writer.write(sb.toString().getBytes());
+
+                            } catch (NumberFormatException e) {
+                                writer.write("-ERR value is not an integer or out of range\r\n".getBytes());
+                            } catch (RuntimeException e) {
+                                writer.write(("-ERR " + e.getMessage() + "\r\n").getBytes());
+                            }
+                        }
+                        break;
                     default:
                         writer.write("-ERR unknown command\r\n".getBytes());
                         break;
