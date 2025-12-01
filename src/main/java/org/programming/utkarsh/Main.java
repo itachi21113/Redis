@@ -8,6 +8,9 @@ public class Main {
         int port = 6379;
         System.out.println("Starting J-Redis Server...");
 
+        // 1. Initialize the Single Source of Truth (The Database)
+        KVStore kvStore = new KVStore();
+
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server is listening on port: " + port);
 
@@ -18,7 +21,7 @@ public class Main {
 
                 // 2. Delegate to the separate handler class
                 // We create a new ClientHandler object and run it in a new Thread.
-                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                ClientHandler clientHandler = new ClientHandler(clientSocket , kvStore);
                 new Thread(clientHandler).start();
             }
 
